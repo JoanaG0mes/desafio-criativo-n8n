@@ -1,99 +1,99 @@
 # Desafio Criativo: Planejando Automações com N8N Usando Apenas Bons Prompts
 
-Projeto desenvolvido para o desafio da **DIO (Digital Innovation One)**, com foco em estruturar um prompt eficiente, contextualizado e completo para orientar a criação de workflows no **n8n**.
+**Projeto:** Sistema Automatizado de Justificativa de Faltas e Análise de Documentos Acadêmicos com IA  
+**Plataforma de Automação:** n8n  
+**Objetivo:** Automatizar o atendimento à secretaria/coordenação acadêmica, analisando atestados/documentos via IA com visão computacional, registrando no sistema escolar e notificando o aluno.
 
 ---
 
-## 🧱 Passo 1: Definição da Automação
+## 🧱 Passo 1: Defina a automação desejada
 
-**Processo a ser automatizado:**
-Quero criar uma automação no N8N para **qualificação, enriquecimento e distribuição automática de novos leads recebidos via webhook/formulário**.
+**Quero criar uma automação no N8N para:**
+Receber solicitações de justificativa de faltas e requerimentos acadêmicos enviados por alunos, analisar os comprovantes e atestados anexados através de IA (visão computacional), abonar/justificar as faltas diretamente no sistema acadêmico via API, registrar o histórico em planilha e notificar o aluno por e-mail com o parecer final.
 
-* **Público ou responsável:**  
-  Equipe de Vendas (SDRs/Closers) e Time de Marketing.
+* **Público ou responsável:**
+  Secretaria Acadêmica, Coordenação de Curso e os próprios Alunos.
 
-* **Resultado esperado:**  
-  Capturar o lead em tempo real, enriquecer os dados corporativos, aplicar critérios de qualificação (lead scoring/fit), rotear e cadastrar no CRM (HubSpot/Pipedrive) e alertar imediatamente o canal comercial no Slack com ações rápidas.
+* **Resultado esperado:**
+  Reduzir o tempo de resposta das solicitações de dias para minutos, eliminar a conferência manual de atestados simples, manter a planilha de controle e o sistema acadêmico 100% atualizados e fornecer retorno transparente ao aluno por e-mail.
 
 ---
 
 ## 🧱 Passo 2: Contexto e Regras
 
 * **Ferramentas envolvidas:**
-  * **Webhook / Typeform / Google Forms** (gatilho de entrada do lead)
-  * **Clearbit / Hunter API ou HTTP Request** (enriquecimento de domínio/empresa)
-  * **CRM (HubSpot ou Pipedrive)** (criação e atualização de contato/negócio)
-  * **Slack** (notificação dinâmica em canal interno)
-  * **SendGrid / Gmail** (e-mail automático de boas-vindas)
+  * **Google Forms ou E-mail (IMAP / Gmail Trigger):** Ponto de entrada onde o aluno envia matrícula, justificativa e anexa o documento/imagem.
+  * **Google Sheets:** Registro e rastreio de todos os chamados, status (Aprovado, Rejeitado, Em Análise Manual) e timestamps.
+  * **OpenAI (GPT-4o / Vision) ou Google Gemini:** Análise visual do atestado/documento anexado (leitura de CRM do médico, datas, legibilidade, assinatura e motivo).
+  * **API do Sistema Acadêmico (ex: TOTVS, Q-Acadêmico, SIGA ou ERP Educacional):** Endpoint REST para registrar a dispensa/justificativa de faltas na frequência do aluno.
+  * **Gmail / SendGrid:** Envio do e-mail formal ao aluno comunicando se o pedido foi deferido ou indeferido.
 
 * **Fluxo desejado:**
-  1. **Disparo:** Receber os dados do lead via Webhook ou acionador do formulário.
-  2. **Validação:** Verificar se o e-mail informado é corporativo e possui formato válido.
-  3. **Enriquecimento:** Realizar consulta via HTTP Request para buscar porte e setor da empresa.
-  4. **Score & Roteamento (IF / Switch):**
-     * Se for *Lead Qualificado* (ex: porte > 50 funcionários ou interesse prioritário): criar contato + oportunidade no CRM e enviar alerta de alta prioridade no canal `#vendas-hot-leads` do Slack.
-     * Se for *Lead em Nutrição*: cadastrar apenas como contato no CRM e adicionar à régua de marketing.
-  5. **Notificação ao Lead:** Disparar e-mail automático personalizado de boas-vindas com o material solicitado.
-  6. **Tratamento de Erros:** Encaminhar qualquer falha ou dado corrompido para um canal `#alertas-ops`.
+  1. **Entrada:** Receber o requerimento do aluno com matrícula, motivo da ausência e anexo do documento (foto/PDF do atestado).
+  2. **Registro Inicial:** Adicionar nova linha no Google Sheets com status `"Recebido"`.
+  3. **Análise por IA (Visão Computacional):**
+     * Enviar a imagem do documento para o modelo multimodal de IA.
+     * Extrair dados: Data do atestado, quantidade de dias de repouso, legibilidade do documento e dados do emissor (CRM/médico).
+     * Validar se o período do atestado coincide com a data da falta informada pelo aluno.
+  4. **Tomada de Decisão (If / Switch Node):**
+     * **Caso Aprovado:** 
+       1. Disparar requisição HTTP à API do Sistema Acadêmico para abonar a falta.
+       2. Atualizar a planilha com status `"Aprovado / Falta Justificada"`.
+       3. Enviar e-mail ao aluno confirmando a resolução e o período abonado.
+     * **Caso Inválido / Ilegível / Suspeito:** 
+       1. Atualizar a planilha com status `"Necessita Análise Manual"` ou `"Recusado"`.
+       2. Enviar e-mail ao aluno orientando a reenviar o documento legível ou agendar comparecimento presencial.
 
 * **Regras importantes:**
-  * Ignorar ou descartar submissões que não possuam e-mail válido ou com domínios temporários/descartáveis.
-  * Realizar dedup (evitar duplicidade no CRM): pesquisar contato antes de criar um novo.
-  * Timeout de 5 segundos na requisição de enriquecimento para não travar a esteira.
+  * Documentos ilegíveis ou cortados nunca devem ser aprovados automaticamente; devem cair em rota de contingência para conferência humana.
+  * O prazo limite para submissão do atestado deve ser validado (ex: até 48h após a ausência).
+  * Tratar erros da API do sistema acadêmico com retentativas automáticas e notificação à equipe de TI/Secretaria se o sistema estiver fora do ar.
 
 ---
 
-## 🧱 Passo 3: Prompt Final Estruturado
-
-Copie o prompt abaixo para utilizá-lo diretamente no ChatGPT, Claude, Gemini ou qualquer assistente de IA:
+## 🧱 Passo 3: Monte o prompt final
 
 ```text
-Atue como um Arquiteto de Soluções especialista em automações corporativas no N8N.
+Atue como um Arquiteto de Soluções especialista em N8N e integrações com Inteligência Artificial.
 
-Crie uma automação completa e robusta para:
-Qualificação, enriquecimento e roteamento inteligente de novos leads recebidos via formulário.
+Crie uma automação completa no N8N para:
+Processar requerimentos de justificativa de faltas escolares, com análise visual de documentos por IA, atualização de sistema acadêmico via API, controle em planilha e retorno por e-mail ao aluno.
 
-Público-alvo / Beneficiários:
-Equipe Comercial (SDRs/Vendedores) e Operações de Marketing.
+Público:
+Secretaria Acadêmica, Coordenação e Alunos.
 
 Ferramentas envolvidas:
-- Webhook / Typeform (Gatilho)
-- HTTP Request (API de enriquecimento)
-- Hubspot ou Pipedrive (CRM)
-- Slack (Comunicação interna)
-- Gmail / SendGrid (Comunicação externa)
+- Google Forms / Webhook ou Gmail Trigger (Recebimento de requerimentos e anexos)
+- Google Sheets (Controle de solicitações e histórico)
+- OpenAI GPT-4o / Vision ou Google Gemini (Análise e OCR inteligente de atestados/documentos)
+- HTTP Request Node (Integração com API REST do Sistema Acadêmico)
+- Gmail / SendGrid Node (Comunicação de deferimento/indeferimento ao aluno)
 
-Fluxo detalhado:
-1. Receber payload via Webhook ou Form Trigger.
-2. Limpar e padronizar campos (Code node ou Edit Fields).
-3. Validar se o e-mail é válido e corporativo (If node).
-4. Buscar informações complementares da empresa via HTTP Request.
-5. Calcular pontuação/fit do lead (Switch node):
-   - Alta prioridade: Criar Deal no CRM e enviar card rico com botões no Slack (#vendas-hot).
-   - Baixa prioridade: Salvar contato no CRM e acionar régua de nutrição.
-6. Enviar e-mail de confirmação dinâmico com template HTML.
+Fluxo:
+1. Receber a solicitação contendo dados do aluno (matrícula, data da falta) e imagem/PDF do comprovante.
+2. Salvar o registro inicial no Google Sheets com status "Em Análise".
+3. Processar a imagem com nó de IA multimodal para extrair datas, assinatura, carimbo e verificar autenticidade/legibilidade.
+4. Avaliar com nó de decisão (If/Switch):
+   - Se os critérios forem atendidos: chamar a API do Sistema Acadêmico via HTTP Request justificando as faltas, atualizar a linha na planilha para "Deferido" e disparar e-mail de confirmação ao aluno.
+   - Se o documento for ilegível ou inválido: atualizar a planilha como "Pendente de Revisão" e notificar o aluno por e-mail com as instruções de reenvio.
 
-Regras e restrições:
-- Verificar duplicidade no CRM antes de inserir.
-- Ignorar submissões sem campos obrigatórios (Nome e E-mail).
-- Tratar falhas de requisição externa com rota de fallback sem quebrar a execução.
+Regras:
+- Não aprovar automaticamente atestados sem data legível, sem assinatura/carimbo ou enviados fora do prazo regulamentar.
+- Tratar exceções e erros de conexão com a API acadêmica sem interromper a execução do fluxo.
 
-Entrega esperada:
-1. Lista dos nós nativos do N8N recomendados para cada etapa.
-2. Explicação da arquitetura e fluxo de dados entre os nós.
-3. Exemplo de estrutura do JSON/Workflow para importação direta no N8N.
+Explique quais nós do N8N devem ser utilizados, a configuração do nó de IA para visão/OCR, o payload JSON da requisição HTTP e a lógica detalhada de funcionamento do workflow.
 ```
 
 ---
 
-## 💡 Como Usar e Submeter na DIO
+## ☁️ Como entregar seu Desafio na DIO
 
-1. **Repositório GitHub:**
-   * Crie ou utilize um repositório público (ex: `desafios-n8n-prompts`).
-   * Adicione este arquivo como `README.md` ou `desafio-n8n-prompt.md`.
-   * Copie o link da página do GitHub e envie na plataforma da DIO.
+1. **Google Drive:**
+   * Faça upload deste arquivo `.md` no seu Google Drive.
+   * Ajuste o acesso para **"Qualquer pessoa com o link"**.
+   * Copie o link e envie na plataforma da DIO.
 
-2. **Google Drive:**
-   * Salve este conteúdo em um arquivo de texto ou Google Docs.
-   * Configure o compartilhamento para *"Qualquer pessoa com o link"*.
-   * Cole o link na página de submissão da DIO.
+2. **GitHub:**
+   * Crie um repositório (ex: `desafio-n8n-dio`).
+   * Suba este arquivo com o nome `README.md`.
+   * Envie o link do repositório na DIO.
